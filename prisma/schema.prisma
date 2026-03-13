@@ -1,32 +1,65 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Supabase PostgreSQL configuration
+// Set DATABASE_URL in your .env file
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  password  String?
+  image     String?
+  role      String   @default("user")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  posts     Post[]
+  contents  Content[]
+  
+  @@map("users")
 }
 
 model Post {
   id        String   @id @default(cuid())
   title     String
-  content   String?
+  content   String?  @db.Text
   published Boolean  @default(false)
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@index([authorId])
+  @@map("posts")
+}
+
+model Content {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // "blog", "social", "email", "ad", etc.
+  content     String   @db.Text
+  metadata    Json?    // Additional metadata (keywords, tone, etc.)
+  status      String   @default("draft") // "draft", "published", "archived"
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  @@index([authorId])
+  @@index([type])
+  @@index([status])
+  @@map("contents")
 }
